@@ -35,7 +35,7 @@ def sample_tag(user, name='Main course'):
 
 
 def sample_ingredient(user, name='Cinnamon'):
-    """Create and return a sample tag"""
+    """Create and return a sample ingredient"""
     return Ingredient.objects.create(user=user, name=name)
 
 
@@ -228,3 +228,45 @@ class RecipeImageUploadTests(TestCase):
         response = self.client.post(url, {'image': 'notimage'}, format='multipart')
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_filter_recipes_by_tag(self):
+        """Test returning recipes with specific tags"""
+        recipe1 = sample_recipe(user=self.user, title="Thai vege curry")
+        recipe2 = sample_recipe(user=self.user, title="Pad Thai")
+        recipe3 = sample_recipe(user=self.user, title="Drunken Noodles")
+        tag1 = sample_tag(user=self.user, name='Vegan')
+        tag2 = sample_tag(user=self.user, name='Vegetarian')
+        recipe1.tags.add(tag1)
+        recipe2.tags.add(tag2)
+
+        response = self.client.get(
+            RECIPE_URL,
+            {'tags': f'{tag1.id},{tag2.id}'})
+
+        serializer1 = RecipeSerializer(recipe1)
+        serializer2 = RecipeSerializer(recipe2)
+        serializer3 = RecipeSerializer(recipe3)
+        self.assertIn(serializer1.data, response.data)
+        self.assertIn(serializer2.data, response.data)
+        self.assertNotIn(serializer3.data, response.data)
+
+    def test_filter_recipes_by_ingredients(self):
+        """Test returning recipes with specific ingredients"""
+        recipe1 = sample_recipe(user=self.user, title="Thai vege curry")
+        recipe2 = sample_recipe(user=self.user, title="Pad Thai")
+        recipe3 = sample_recipe(user=self.user, title="Drunken Noodles")
+        ingredient1 = sample_ingredient(user=self.user, name='curry')
+        ingredient2 = sample_ingredient(user=self.user, name='peanuts')
+        recipe1.ingredients.add(ingredient1)
+        recipe2.ingredients.add(ingredient2)
+
+        response = self.client.get(
+            RECIPE_URL,
+            {'ingredients': f'{ingredient1.id},{ingredient2.id}'})
+
+        serializer1 = RecipeSerializer(recipe1)
+        serializer2 = RecipeSerializer(recipe2)
+        serializer3 = RecipeSerializer(recipe3)
+        self.assertIn(serializer1.data, response.data)
+        self.assertIn(serializer2.data, response.data)
+        self.assertNotIn(serializer3.data, response.data)
